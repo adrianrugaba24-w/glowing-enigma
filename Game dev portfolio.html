@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ALEX VOSS // CS.EXE</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════
+   THEME TOKENS
+═══════════════════════════════════════════════ */
+:root {
+  --transition-theme: background 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+
+  /* ACCENT PALETTE — same in both modes */
+  --green:  #39ff14;
+  --cyan:   #00e5ff;
+  --pink:   #ff2079;
+  --yellow: #ffe600;
+  --purple: #b24fff;
+  --orange: #ff7b00;
+
+  /* Derived glows */
+  --glow-cyan:   0 0 12px rgba(0,229,255,0.6);
+  --glow-green:  0 0 12px rgba(57,255,20,0.6);
+  --glow-pink:   0 0 12px rgba(255,32,121,0.6);
+  --glow-yellow: 0 0 12px rgba(255,230,0,0.6);
+}
+
+[data-theme="dark"] {
+  --bg:        #07070f;
+  --bg2:       #0f0f1c;
+  --bg3:       #14142a;
+  --surface:   #1a1a30;
+  --border:    #2a2a50;
+  --border2:   #3a3a65;
+  --text:      #c8c8f0;
+  --text-dim:  #6060a0;
+  --text-hi:   #ffffff;
+  --nav-bg:    rgba(7,7,15,0.92);
+  --card-bg:   #0f0f1c;
+  --term-bg:   #000008;
+  --scanline:  rgba(0,0,0,0.12);
+  --grid-line: rgba(0,229,255,0.04);
+}
+
+[data-theme="light"] {
+  --bg:        #f0f0ff;
+  --bg2:       #e8e8f8;
+  --bg3:       #dcdcf0;
+  --surface:   #ffffff;
+  --border:    #b0b0d8;
+  --border2:   #8888bb;
+  --text:      #2a2a4a;
+  --text-dim:  #7070a0;
+  --text-hi:   #0a0a1a;
+  --nav-bg:    rgba(240,240,255,0.92);
+  --card-bg:   #ffffff;
+  --term-bg:   #0a0a18;
+  --scanline:  rgba(0,0,0,0.04);
+  --grid-line: rgba(0,50,200,0.05);
+}
+
+/* ═══════════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════════ */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'VT323', monospace;
+  font-size: 18px;
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: var(--transition-theme);
+  image-rendering: pixelated;
+  cursor: crosshair;
+}
+
+/* Pixel grid */
+body::before {
+  content:'';
+  position:fixed; inset:0;
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events:none; z-index:0;
+  transition: var(--transition-theme);
+}
+
+/* CRT scanlines */
+body::after {
+  content:'';
+  position:fixed; inset:0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent, transparent 3px,
+    var(--scanline) 3px, var(--scanline) 4px
+  );
+  pointer-events:none; z-index:998;
+  transition: var(--transition-theme);
+}
+
+/* ═══════════════════════════════════════════════
+   KEYFRAMES
+═══════════════════════════════════════════════ */
+@keyframes blink    { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+@keyframes float    { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+@keyframes spin     { to{transform:rotate(360deg)} }
+@keyframes fadeUp   { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+@keyframes slideIn  { from{opacity:0;transform:translateX(-20px)} to{opacity:1;transform:translateX(0)} }
+@keyframes glowPulse {
+  0%,100%{ text-shadow: 2px 2px 0 rgba(0,0,0,0.5), 0 0 8px currentColor; }
+  50%    { text-shadow: 2px 2px 0 rgba(0,0,0,0.5), 0 0 28px currentColor, 0 0 56px currentColor; }
+}
+@keyframes scanMove { from{top:-100%} to{top:200%} }
+@keyframes pixelate {
+  0%{clip-path:inset(0 100% 0 0)}
+  100%{clip-path:inset(0 0% 0 0)}
+}
+@keyframes barFill  { from{width:0} to{width:var(--w,80%)} }
+@keyframes coinSpin {
+  0%{transform:scaleX(1)} 40%{transform:scaleX(0.1)} 50%{transform:scaleX(0)} 60%{transform:scaleX(0.1)} 100%{transform:scaleX(1)}
+}
+@keyframes shake {
+  0%,100%{transform:translateX(0)}
+  25%{transform:translateX(-3px)}
+  75%{transform:translateX(3px)}
+}
+
+/* ═══════════════════════════════════════════════
+   NAVBAR
+═══════════════════════════════════════════════ */
+nav {
+  position:fixed; top:0; left:0; right:0; z-index:200;
+  background: var(--nav-bg);
+  backdrop-filter: blur(16px);
+  border-bottom: 3px solid var(--border);
+  height: 60px;
+  display:flex; align-items:center; justify-content:space-between;
+  padding: 0 2rem;
+  transition: var(--transition-theme);
+}
+
+/* Accent bar under nav */
+nav::after {
+  content:'';
+  position:absolute; bottom:-7px; left:0; right:0; height:4px;
+  background: repeating-linear-gradient(90deg,
+    var(--cyan)   0, var(--cyan)   8px,
+    var(--pink)   8px, var(--pink)  16px,
+    var(--yellow) 16px, var(--yellow) 24px,
+    var(--green)  24px, var(--green)  32px,
+    var(--purple) 32px, var(--purple) 40px,
+    transparent  40px, transparent  48px);
+}
+
+.nav-logo {
+  font-family:'Press Start 2P',monospace;
+  font-size:0.7rem; color:var(--cyan);
+  animation: glowPulse 4s ease infinite;
+  letter-spacing:0.05em;
+}
+.nav-logo em { color:var(--pink); font-style:normal; }
+
+.nav-center {
+  display:flex; gap:0; list-style:none;
+}
+
+.nav-center a {
+  font-family:'Press Start 2P',monospace; font-size:0.38rem;
+  color:var(--text-dim); text-decoration:none;
+  padding:0 1rem; height:60px; display:flex; align-items:center;
+  border-left:2px solid var(--border);
+  letter-spacing:0.05em;
+  position:relative; overflow:hidden;
+  transition:color 0.15s;
+}
+
+.nav-center a::before {
+  content:'';
+  position:absolute; bottom:0; left:0; right:0; height:3px;
+  background:var(--cyan); transform:scaleX(0);
+  transition:transform 0.15s; transform-origin:left;
+}
+
+.nav-center a:hover { color:var(--cyan); }
+.nav-center a:hover::before { transform:scaleX(1); }
+
+.nav-right { display:flex; align-items:center; gap:1rem; }
+
+/* ─── THEME TOGGLE ─── */
+.theme-toggle {
+  display:flex; align-items:center; gap:0.5rem;
+  font-family:'Press Start 2P',monospace; font-size:0.38rem;
+  color:var(--text-dim); cursor:pointer;
+  padding:0.5rem 0.8rem;
+  border:2px solid var(--border);
+  background:transparent;
+  transition:all 0.15s;
+}
+.theme-toggle:hover { border-color:var(--yellow); color:var(--yellow); }
+
+.toggle-track {
+  width:36px; height:18px;
+  background:var(--border);
+  border:2px solid var(--border2);
+  position:relative; cursor:pointer;
+  transition:background 0.3s;
+  flex-shrink:0;
+}
+
+[data-theme="light"] .toggle-track { background:var(--cyan); }
+
+.toggle-thumb {
+  position:absolute; top:1px; left:1px;
+  width:12px; height:12px;
+  background:var(--yellow);
+  transition:transform 0.3s, background 0.3s;
+  image-rendering:pixelated;
+}
+[data-theme="light"] .toggle-thumb { transform:translateX(18px); background:var(--pink); }
+
+.toggle-icon { font-size:1rem; }
+
+.nav-score {
+  font-family:'Press Start 2P',monospace; font-size:0.38rem;
+  color:var(--yellow); display:flex; align-items:center; gap:0.4rem;
+}
+
+.coin {
+  width:10px; height:10px;
+  background:var(--yellow); border-radius:50%;
+  display:inline-block;
+  animation: coinSpin 2s ease-in-out infinite;
+}
+.coin:nth-child(2) { animation-delay:.4s; }
+.coin:nth-child(3) { animation-delay:.8s; }
+
+/* ═══════════════════════════════════════════════
+   SECTION COMMONS
+═══════════════════════════════════════════════ */
+section { padding:6rem 3rem; position:relative; z-index:2; }
+
+.sec-hdr {
+  display:flex; align-items:center; gap:1.5rem;
+  margin-bottom:3.5rem;
+}
+
+.sec-badge {
+  font-family:'Press Start 2P',monospace; font-size:0.38rem;
+  background:var(--pink); color:#fff;
+  padding:0.5rem 0.9rem; letter-spacing:0.1em;
+  white-space:nowrap;
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.3);
+}
+
+.sec-title {
+  font-family:'Press Start 2P',monospace; font-size:0.95rem;
+  color:var(--text-hi); letter-spacing:0.06em;
+  text-shadow:2px 2px 0 rgba(0,229,255,0.2);
+}
+
+.sec-line {
+  flex:1; height:3px;
+  background:repeating-linear-gradient(90deg,
+    var(--border) 0, var(--border) 8px,
+    transparent 8px, transparent 16px);
+}
+
+/* ═══════════════════════════════════════════════
+   PIXEL DIVIDER
+═══════════════════════════════════════════════ */
+.divider {
+  height:8px; position:relative; z-index:2;
+  background:repeating-linear-gradient(90deg,
+    var(--pink)   0, var(--pink)   8px,
+    var(--purple) 8px, var(--purple) 16px,
+    var(--cyan)   16px, var(--cyan)  24px,
+    var(--green)  24px, var(--green) 32px,
+    var(--yellow) 32px, var(--yellow) 40px,
+    var(--orange) 40px, var(--orange) 48px);
+}
+
+/* ═══════════════════════════════════════════════
+   HERO SECTION
+═══════════════════════════════════════════════ */
+.hero {
+  min-height:100vh; display:flex; align-items:center;
+  padding:7rem 3rem 4rem; position:relative; z-index:2;
+  overflow:hidden;
+}
+
+/* Decorative corner bracket */
+.hero::before {
+  content:'';
+  position:absolute; top:80px; right:60px;
+  width:200px; height:200px;
+  border-top:4px solid var(--cyan); border-right:4px solid var(--cyan);
+  opacity:0.2; pointer-events:none;
+}
+.hero::after {
+  content:'';
+  position:absolute; bottom:60px; left:40px;
+  width:140px; height:140px;
+  border-bottom:4px solid var(--pink); border-left:4px solid var(--pink);
+  opacity:0.15; pointer-events:none;
+}
+
+.hero-layout {
+  width:100%; display:grid;
+  grid-template-columns:1fr 380px; gap:4rem; align-items:center;
+}
+
+/* Left content */
+.hero-boot {
+  font-family:'VT323',monospace; font-size:1.15rem;
+  color:var(--green); margin-bottom:1.5rem;
+  opacity:0; animation:fadeUp 0.6s 0.1s ease forwards;
+}
+.hero-boot::before { content:'⬛ '; opacity:0.5; }
+
+.hero-name {
+  font-family:'Press Start 2P',monospace;
+  font-size:clamp(1.6rem,4vw,3.2rem); line-height:1.5;
+  color:var(--text-hi);
+  text-shadow:4px 4px 0 rgba(0,0,0,0.4);
+  opacity:0; animation:fadeUp 0.6s 0.2s ease forwards;
+}
+.hero-name .hl {
+  color:var(--cyan);
+  text-shadow:4px 4px 0 var(--pink), 0 0 40px var(--cyan);
+  display:block;
+}
+
+.hero-sub {
+  font-family:'Press Start 2P',monospace; font-size:0.42rem;
+  color:var(--pink); letter-spacing:0.2em; line-height:2.5;
+  margin:1.5rem 0;
+  opacity:0; animation:fadeUp 0.6s 0.3s ease forwards;
+}
+
+/* Terminal */
+.terminal {
+  background:var(--term-bg);
+  border:3px solid var(--green);
+  padding:1.5rem; position:relative;
+  font-family:'VT323',monospace; font-size:1.15rem;
+  margin:1.8rem 0;
+  box-shadow: 4px 4px 0 rgba(0,0,0,0.5), 0 0 30px rgba(57,255,20,0.1);
+  opacity:0; animation:fadeUp 0.6s 0.4s ease forwards;
+}
+
+.terminal-titlebar {
+  position:absolute; top:-14px; left:12px;
+  background:var(--term-bg); color:var(--green);
+  font-family:'Press Start 2P',monospace; font-size:0.3rem;
+  padding:0 8px; letter-spacing:0.1em;
+}
+
+/* Moving scan line inside terminal */
+.terminal-scan {
+  position:absolute; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, transparent, rgba(57,255,20,0.3), transparent);
+  animation:scanMove 3s linear infinite;
+  pointer-events:none;
+}
+
+.t-line { display:flex; gap:1rem; margin-bottom:0.4rem; line-height:1.5; }
+.t-p { color:var(--green); min-width:14px; }
+.t-k { color:var(--cyan); min-width:175px; }
+.t-v { color:var(--yellow); }
+.t-v.g { color:var(--green); }
+.t-v.p { color:var(--pink); }
+
+/* CTA buttons */
+.hero-btns {
+  display:flex; gap:1.5rem; flex-wrap:wrap;
+  opacity:0; animation:fadeUp 0.6s 0.5s ease forwards;
+}
+
+.px-btn {
+  font-family:'Press Start 2P',monospace; font-size:0.42rem;
+  padding:1rem 1.8rem; text-decoration:none;
+  display:inline-flex; align-items:center; gap:0.6rem;
+  letter-spacing:0.05em; cursor:pointer; border:none;
+  transition:transform 0.1s, box-shadow 0.1s;
+  position:relative; overflow:hidden;
+}
+.px-btn:active { transform:translate(3px,3px); }
+
+.px-btn::after {
+  content:'';
+  position:absolute; inset:0;
+  background:repeating-linear-gradient(90deg,
+    rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 4px,
+    transparent 4px, transparent 8px);
+}
+
+.btn-p {
+  background:var(--cyan); color:#000;
+  box-shadow:4px 4px 0 #005f6b, 0 0 20px rgba(0,229,255,0.3);
+}
+.btn-p:hover { box-shadow:6px 6px 0 #005f6b, var(--glow-cyan); }
+
+.btn-s {
+  background:transparent; color:var(--pink);
+  box-shadow:0 0 0 3px var(--pink), 4px 4px 0 rgba(255,32,121,0.25);
+}
+.btn-s:hover { background:rgba(255,32,121,0.08); box-shadow:0 0 0 3px var(--pink), 6px 6px 0 rgba(255,32,121,0.25), var(--glow-pink); }
+
+/* ─── CHAR PANEL (right) ─── */
+.char-panel {
+  background:var(--card-bg);
+  border:3px solid var(--border);
+  padding:1.8rem; position:relative; text-align:center;
+  box-shadow:6px 6px 0 var(--border), 0 0 40px rgba(0,229,255,0.05);
+  opacity:0; animation:fadeUp 0.6s 0.35s ease forwards;
+  transition:var(--transition-theme);
+}
+
+.char-panel::before {
+  content:'PLAYER 1 SELECT';
+  position:absolute; top:-13px; left:50%; transform:translateX(-50%);
+  background:var(--bg); color:var(--yellow);
+  font-family:'Press Start 2P',monospace; font-size:0.3rem;
+  padding:0 10px; white-space:nowrap; letter-spacing:0.1em;
+  transition:var(--transition-theme);
+}
+
+.char-sprite-wrap {
+  width:140px; height:140px; margin:0.5rem auto 1.2rem;
+  position:relative; display:flex; align-items:center; justify-content:center;
+}
+
+/* Pixel frame around sprite */
+.char-sprite-wrap::before {
+  content:'';
+  position:absolute; inset:-4px;
+  border:3px solid var(--cyan);
+  clip-path:polygon(0 8px, 8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px));
+  animation:glowPulse 3s ease infinite;
+}
+
+.char-emoji {
+  font-size:4rem; animation:float 2.5s ease-in-out infinite;
+  display:block;
+}
+
+/* HP/MP bars */
+.char-meta { margin-bottom:1rem; }
+
+.hpmp-row {
+  display:flex; align-items:center; gap:0.6rem;
+  font-family:'VT323',monospace; font-size:0.95rem; margin-bottom:0.35rem;
+}
+.hpmp-lbl { color:var(--text-dim); min-width:28px; font-size:0.85rem; }
+.hpmp-bar { flex:1; height:10px; background:var(--bg3); border:2px solid var(--border); }
+.hpmp-fill { height:100%; position:relative; }
+.hpmp-fill::after {
+  content:''; position:absolute; inset:0;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,0.25) 0,rgba(255,255,255,0.25) 3px,transparent 3px,transparent 6px);
+}
+.hpmp-fill.hp { background:var(--green); }
+.hpmp-fill.mp { background:var(--cyan); }
+.hpmp-val { color:var(--text-dim); font-size:0.8rem; min-width:40px; text-align:right; }
+
+.char-divider { height:2px; background:var(--border); margin:1rem 0; }
+
+.char-name {
+  font-family:'Press Start 2P',monospace; font-size:0.52rem;
+  color:var(--text-hi); margin-bottom:0.3rem;
+}
+.char-class { font-family:'VT323',monospace; font-size:1.1rem; color:var(--cyan); margin-bottom:1rem; }
+
+.char-stats { display:flex; flex-direction:column; gap:0.5rem; text-align:left; }
+
+.stat-row { display:flex; align-items:center; gap:0.6rem; font-family:'VT323',monospace; }
+.stat-lbl { color:var(--text-dim); min-width:54px; font-size:0.88rem; }
+.stat-bar { flex:1; height:9px; background:var(--bg3); border:2px solid var(--border); }
+.stat-fill { height:100%; }
+.stat-fill::after {
+  content:''; display:block; height:100%;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,0.2) 0,rgba(255,255,255,0.2) 3px,transparent 3px,transparent 6px);
+}
+.stat-fill.g  { background:var(--green); }
+.stat-fill.y  { background:var(--yellow); }
+.stat-fill.p  { background:var(--pink); }
+.stat-fill.c  { background:var(--cyan); }
+.stat-fill.pu { background:var(--purple); }
+.stat-val { color:var(--yellow); font-size:0.88rem; min-width:32px; text-align:right; }
+
+/* LEVEL badge */
+.level-badge {
+  position:absolute; top:12px; right:12px;
+  background:var(--yellow); color:#000;
+  font-family:'Press Start 2P',monospace; font-size:0.3rem;
+  padding:0.3rem 0.6rem;
+  box-shadow:2px 2px 0 rgba(0,0,0,0.3);
+}
+
+/* ═══════════════════════════════════════════════
+   SKILLS
+═══════════════════════════════════════════════ */
+.skills-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1.5rem; }
+
+.skill-card {
+  background:var(--card-bg); border:3px solid var(--border);
+  padding:1.5rem; position:relative; overflow:hidden;
+  transition:border-color 0.15s, transform 0.15s, box-shadow 0.15s, var(--transition-theme);
+}
+
+.skill-card::before {
+  content:'';
+  position:absolute; top:0; left:0; right:0; height:3px;
+  background:linear-gradient(90deg, var(--cyan), var(--purple), var(--pink));
+  transform:scaleX(0); transform-origin:left;
+  transition:transform 0.25s;
+}
+
+.skill-card:hover { border-color:var(--cyan); transform:translate(-2px,-3px); box-shadow:4px 5px 0 var(--cyan); }
+.skill-card:hover::before { transform:scaleX(1); }
+
+.skill-card-hdr {
+  display:flex; align-items:center; gap:0.8rem;
+  margin-bottom:1.2rem; padding-bottom:0.8rem;
+  border-bottom:2px solid var(--border);
+}
+.skill-icon { font-size:1.4rem; }
+.skill-cat {
+  font-family:'Press Start 2P',monospace; font-size:0.4rem;
+  color:var(--cyan); line-height:1.9;
+}
+
+.skill-item { margin-bottom:0.8rem; }
+.skill-meta { display:flex; justify-content:space-between; font-family:'VT323',monospace; font-size:1rem; margin-bottom:0.3rem; }
+.skill-n { color:var(--text); }
+.skill-p { color:var(--yellow); }
+.bar-o { height:9px; background:var(--bg3); border:2px solid var(--border); }
+.bar-i {
+  height:100%; width:0; background:var(--green);
+  transition:width 1.4s cubic-bezier(0.4,0,0.2,1);
+  position:relative;
+}
+.bar-i::after {
+  content:''; position:absolute; inset:0;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,0.15) 0,rgba(255,255,255,0.15) 4px,transparent 4px,transparent 8px);
+}
+.bar-i.c  { background:var(--cyan); }
+.bar-i.p  { background:var(--pink); }
+.bar-i.y  { background:var(--yellow); }
+.bar-i.pu { background:var(--purple); }
+.bar-i.o  { background:var(--orange); }
+
+/* ═══════════════════════════════════════════════
+   PROJECTS
+═══════════════════════════════════════════════ */
+.projects-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; }
+
+.proj-card {
+  background:var(--card-bg); border:3px solid var(--border);
+  overflow:hidden; position:relative; cursor:pointer;
+  transition:border-color 0.15s, transform 0.15s, box-shadow 0.15s, var(--transition-theme);
+}
+.proj-card:hover { border-color:var(--pink); transform:translate(-2px,-3px); box-shadow:5px 5px 0 var(--pink); }
+
+.proj-screen {
+  height:170px; position:relative; overflow:hidden;
+  border-bottom:3px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+  font-size:4rem;
+  transition:border-color 0.15s;
+}
+.proj-card:hover .proj-screen { border-color:var(--pink); }
+
+.proj-screen-fx {
+  position:absolute; inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.12) 3px,rgba(0,0,0,0.12) 4px);
+}
+
+.proj-screen-hud {
+  position:absolute; inset:0; display:flex;
+  align-items:flex-end; justify-content:space-between;
+  padding:8px 10px;
+}
+
+.proj-hud-label {
+  font-family:'Press Start 2P',monospace; font-size:0.28rem;
+  color:rgba(255,255,255,0.55); letter-spacing:0.1em;
+}
+
+.proj-hud-pts {
+  font-family:'Press Start 2P',monospace; font-size:0.28rem;
+  color:var(--yellow);
+}
+
+/* Corner brackets on hover */
+.proj-card::before, .proj-card::after {
+  content:''; position:absolute; width:16px; height:16px;
+  border-color:var(--pink); border-style:solid;
+  opacity:0; transition:opacity 0.2s;
+  z-index:10;
+}
+.proj-card::before { top:8px; left:8px; border-width:2px 0 0 2px; }
+.proj-card::after  { top:8px; right:8px; border-width:2px 2px 0 0; }
+.proj-card:hover::before, .proj-card:hover::after { opacity:1; }
+
+.proj-body { padding:1.3rem; }
+.proj-id   { font-family:'Press Start 2P',monospace; font-size:0.3rem; color:var(--yellow); margin-bottom:0.5rem; }
+.proj-name { font-family:'Press Start 2P',monospace; font-size:0.58rem; color:var(--text-hi); margin-bottom:0.8rem; line-height:1.9; }
+.proj-desc { font-family:'VT323',monospace; font-size:1.05rem; color:var(--text-dim); line-height:1.5; margin-bottom:1rem; }
+
+.proj-tags { display:flex; flex-wrap:wrap; gap:0.5rem; }
+.ptag {
+  font-family:'Press Start 2P',monospace; font-size:0.26rem;
+  padding:0.3rem 0.6rem; letter-spacing:0.04em;
+}
+.ptag-e { background:rgba(0,229,255,0.08); color:var(--cyan); border:2px solid var(--cyan); }
+.ptag-l { background:rgba(178,79,255,0.08); color:var(--purple); border:2px solid var(--purple); }
+.ptag-g { background:rgba(255,32,121,0.08); color:var(--pink); border:2px solid var(--pink); }
+
+/* ═══════════════════════════════════════════════
+   EXPERIENCE
+═══════════════════════════════════════════════ */
+.exp-table {
+  border:3px solid var(--border); overflow:hidden;
+  transition:var(--transition-theme);
+}
+
+.exp-hdr {
+  display:grid; grid-template-columns:230px 200px 1fr 150px;
+  background:rgba(0,229,255,0.06); border-bottom:3px solid var(--cyan);
+  padding:0.8rem 1.4rem;
+}
+.exp-th {
+  font-family:'Press Start 2P',monospace; font-size:0.3rem;
+  color:var(--cyan); letter-spacing:0.1em;
+}
+
+.exp-row {
+  display:grid; grid-template-columns:230px 200px 1fr 150px;
+  border-bottom:2px solid var(--border);
+  position:relative; transition:background 0.15s;
+}
+.exp-row:last-child { border-bottom:none; }
+.exp-row:hover { background:rgba(0,229,255,0.03); }
+
+/* Selector arrow on hover */
+.exp-row::before {
+  content:'►';
+  position:absolute; left:-22px; top:50%; transform:translateY(-50%);
+  color:var(--cyan);
+  font-family:'Press Start 2P',monospace; font-size:0.45rem;
+  opacity:0; transition:opacity 0.15s;
+  animation:blink 0.7s step-end infinite;
+}
+.exp-row:hover::before { opacity:1; }
+
+.exp-cell { padding:1.2rem 1.4rem; border-right:2px solid var(--border); vertical-align:top; }
+.exp-cell:last-child { border-right:none; }
+
+.exp-co   { font-family:'Press Start 2P',monospace; font-size:0.36rem; color:var(--yellow); line-height:2.2; display:block; }
+.exp-role { font-family:'VT323',monospace; font-size:1.1rem; color:var(--text-hi); }
+.exp-date { font-family:'VT323',monospace; font-size:1.1rem; color:var(--green); }
+.exp-desc { font-family:'VT323',monospace; font-size:1rem; color:var(--text-dim); line-height:1.5; }
+
+.badge {
+  display:inline-block; font-family:'Press Start 2P',monospace;
+  font-size:0.27rem; padding:0.3rem 0.6rem;
+}
+.badge-ft { background:rgba(57,255,20,0.1);  color:var(--green);  border:2px solid var(--green); }
+.badge-ct { background:rgba(255,123,0,0.1); color:var(--orange); border:2px solid var(--orange); }
+
+/* ═══════════════════════════════════════════════
+   ACHIEVEMENTS
+═══════════════════════════════════════════════ */
+.ach-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1.5rem; }
+
+.ach-card {
+  background:var(--card-bg); border:3px solid var(--border);
+  padding:1.5rem; text-align:center; position:relative; overflow:hidden;
+  transition:transform 0.15s, box-shadow 0.15s, var(--transition-theme);
+}
+.ach-card.on  { border-color:var(--yellow); }
+.ach-card.off { opacity:0.4; filter:grayscale(1) brightness(0.7); }
+.ach-card:hover { transform:translate(-2px,-3px); box-shadow:4px 5px 0 var(--yellow); }
+
+/* Sheen effect on hover */
+.ach-card::after {
+  content:'';
+  position:absolute; inset:0;
+  background:linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.04) 50%, transparent 60%);
+  transform:translateX(-100%); transition:transform 0.4s;
+}
+.ach-card:hover::after { transform:translateX(100%); }
+
+.ach-stamp {
+  position:absolute; top:8px; right:8px;
+  font-family:'Press Start 2P',monospace; font-size:0.25rem;
+  background:var(--green); color:#000; padding:0.2rem 0.45rem;
+  box-shadow:2px 2px 0 rgba(0,0,0,0.3);
+}
+.ach-icon  { font-size:2.4rem; display:block; margin-bottom:0.8rem; animation:float 3s ease-in-out infinite; }
+.ach-title { font-family:'Press Start 2P',monospace; font-size:0.33rem; color:var(--yellow); line-height:2; margin-bottom:0.5rem; }
+.ach-desc  { font-family:'VT323',monospace; font-size:0.95rem; color:var(--text-dim); line-height:1.4; }
+
+/* stagger the float animations */
+.ach-card:nth-child(2) .ach-icon { animation-delay:0.3s; }
+.ach-card:nth-child(3) .ach-icon { animation-delay:0.6s; }
+.ach-card:nth-child(4) .ach-icon { animation-delay:0.9s; }
+
+/* ═══════════════════════════════════════════════
+   CONTACT
+═══════════════════════════════════════════════ */
+.contact-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; }
+
+.contact-panel {
+  background:var(--card-bg); border:3px solid var(--border);
+  padding:2.2rem; position:relative;
+  transition:var(--transition-theme);
+}
+.contact-panel::before {
+  content:attr(data-lbl);
+  position:absolute; top:-13px; left:1rem;
+  background:var(--bg); color:var(--cyan);
+  font-family:'Press Start 2P',monospace; font-size:0.28rem;
+  padding:0 10px; letter-spacing:0.1em;
+  transition:var(--transition-theme);
+}
+
+.ct-title { font-family:'Press Start 2P',monospace; font-size:0.62rem; color:var(--text-hi); line-height:2.2; margin-bottom:1rem; }
+.ct-sub   { font-family:'VT323',monospace; font-size:1.1rem; color:var(--text-dim); line-height:1.6; margin-bottom:1.8rem; }
+
+.ct-links { display:flex; flex-direction:column; gap:0.7rem; }
+
+.ct-link {
+  display:flex; align-items:center; gap:1rem;
+  font-family:'VT323',monospace; font-size:1.1rem;
+  color:var(--text); text-decoration:none;
+  padding:0.8rem 1rem;
+  background:var(--bg2); border:2px solid var(--border);
+  transition:border-color 0.15s, color 0.15s, background 0.15s, transform 0.1s;
+}
+.ct-link::before { content:'►'; color:var(--green); font-family:'Press Start 2P',monospace; font-size:0.4rem; }
+.ct-link:hover { border-color:var(--cyan); color:var(--cyan); background:rgba(0,229,255,0.04); transform:translateX(4px); }
+
+/* Form */
+.f-field { margin-bottom:1.2rem; }
+.f-lbl {
+  display:block; font-family:'Press Start 2P',monospace; font-size:0.32rem;
+  color:var(--cyan); margin-bottom:0.5rem; letter-spacing:0.1em;
+}
+.f-lbl::before { content:'› '; color:var(--green); }
+
+.f-inp {
+  width:100%; background:var(--term-bg); border:2px solid var(--border);
+  color:var(--green); font-family:'VT323',monospace; font-size:1.2rem;
+  padding:0.75rem 1rem; outline:none; caret-color:var(--green);
+  transition:border-color 0.15s, var(--transition-theme);
+}
+.f-inp:focus { border-color:var(--green); box-shadow:0 0 0 2px rgba(57,255,20,0.15); }
+textarea.f-inp { resize:vertical; min-height:110px; }
+
+/* ═══════════════════════════════════════════════
+   FOOTER
+═══════════════════════════════════════════════ */
+footer {
+  border-top:3px solid var(--border); padding:1.5rem 3rem;
+  display:flex; align-items:center; justify-content:space-between;
+  position:relative; z-index:2; background:var(--bg);
+  transition:var(--transition-theme);
+}
+
+footer::before {
+  content:'';
+  position:absolute; top:0; left:0; right:0; height:3px;
+  background:repeating-linear-gradient(90deg,
+    var(--pink) 0, var(--pink) 8px,
+    transparent 8px, transparent 16px);
+}
+
+.foot-copy  { font-family:'Press Start 2P',monospace; font-size:0.3rem; color:var(--text-dim); letter-spacing:0.08em; }
+.foot-score { font-family:'Press Start 2P',monospace; font-size:0.4rem; color:var(--yellow); }
+
+/* ═══════════════════════════════════════════════
+   SCROLL REVEAL
+═══════════════════════════════════════════════ */
+.reveal { opacity:0; transform:translateY(24px); transition:opacity 0.5s ease, transform 0.5s ease; }
+.reveal.visible { opacity:1; transform:translateY(0); }
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════ */
+@media(max-width:1024px){
+  .hero-layout { grid-template-columns:1fr; }
+  .char-panel  { display:none; }
+  .skills-grid { grid-template-columns:1fr 1fr; }
+  .exp-hdr     { display:none; }
+  .exp-row     { grid-template-columns:1fr; }
+  .ach-grid    { grid-template-columns:1fr 1fr; }
+  .contact-grid, .projects-grid { grid-template-columns:1fr; }
+  section { padding:4rem 1.5rem; }
+  .nav-center  { display:none; }
+}
+
+@media(max-width:600px){
+  .skills-grid { grid-template-columns:1fr; }
+  .ach-grid    { grid-template-columns:1fr 1fr; }
+  .hero { padding:5rem 1.5rem 3rem; }
+  nav { padding:0 1rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ NAV ═══ -->
+<nav>
+  <div class="nav-logo">// <em>AV</em>.EXE</div>
+
+  <ul class="nav-center">
+    <li><a href="#about">PROFILE</a></li>
+    <li><a href="#skills">SKILLS</a></li>
+    <li><a href="#projects">GAMES</a></li>
+    <li><a href="#experience">HISTORY</a></li>
+    <li><a href="#achievements">AWARDS</a></li>
+    <li><a href="#contact">CONNECT</a></li>
+  </ul>
+
+  <div class="nav-right">
+    <!-- THEME TOGGLE -->
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+      <span class="toggle-icon" id="toggleIcon">🌙</span>
+      <div class="toggle-track">
+        <div class="toggle-thumb"></div>
+      </div>
+      <span id="toggleLabel">DARK</span>
+    </button>
+
+    <div class="nav-score">
+      <span class="coin"></span><span class="coin"></span><span class="coin"></span>
+      SCORE: 999999
+    </div>
+  </div>
+</nav>
+
+<!-- ═══ STAGE 01 — HERO ═══ -->
+<section class="hero" id="about">
+  <div class="hero-layout">
+
+    <!-- Left -->
+    <div>
+      <div class="hero-boot">BOOT SEQUENCE COMPLETE <span class="blink">█</span></div>
+
+      <h1 class="hero-name">
+        ALEX
+        <span class="hl">VOSS</span>
+      </h1>
+
+      <div class="hero-sub">
+        COMPUTER SCIENTIST &amp; GAME DEVELOPER<br>
+        CLASS: [ENGINE WIZARD / CS GRAD]
+      </div>
+
+      <div class="terminal">
+        <div class="terminal-titlebar">ALEX_VOSS.EXE — PROFILE v4.2</div>
+        <div class="terminal-scan"></div>
+        <div class="t-line"><span class="t-p">$</span><span class="t-k">name</span><span class="t-v">"Alex Voss"</span></div>
+        <div class="t-line"><span class="t-p">$</span><span class="t-k">degree</span><span class="t-v">"B.Sc Computer Science — MIT"</span></div>
+        <div class="t-line"><span class="t-p">$</span><span class="t-k">specialty</span><span class="t-v">"Game Systems &amp; Engine Architecture"</span></div>
+        <div class="t-line"><span class="t-p">$</span><span class="t-k">languages[]</span><span class="t-v">"C++, C#, Python, GLSL, Rust"</span></div>
+        <div class="t-line"><span class="t-p">$</span><span class="t-k">games_shipped</span><span class="t-v g">12</span></div>
+        <div class="t-line"><span class="t-p">$</span><span class="t-k">years_exp</span><span class="t-v g">6</span></div>
+        <div class="t-line"><span class="t-p">$</span><span class="t-k">status</span><span class="t-v p">"OPEN_TO_HIRE"</span></div>
+        <div class="t-line"><span class="t-p">$</span><span class="blink" style="color:var(--green)">_</span></div>
+      </div>
+
+      <div class="hero-btns">
+        <a href="#projects" class="px-btn btn-p">▶ VIEW GAMES</a>
+        <a href="#contact"  class="px-btn btn-s">✉ CONTACT ME</a>
+      </div>
+    </div>
+
+    <!-- Right: Character Panel -->
+    <div class="char-panel">
+      <div class="level-badge">LVL 42</div>
+
+      <div class="char-sprite-wrap">
+        <span class="char-emoji">🧑‍💻</span>
+      </div>
+
+      <div class="char-meta">
+        <div class="hpmp-row">
+          <span class="hpmp-lbl">HP</span>
+          <div class="hpmp-bar"><div class="hpmp-fill hp" style="width:100%"></div></div>
+          <span class="hpmp-val">999/999</span>
+        </div>
+        <div class="hpmp-row">
+          <span class="hpmp-lbl">MP</span>
+          <div class="hpmp-bar"><div class="hpmp-fill mp" style="width:88%"></div></div>
+          <span class="hpmp-val">880/999</span>
+        </div>
+      </div>
+
+      <div class="char-divider"></div>
+
+      <div class="char-name">ALEX VOSS</div>
+      <div class="char-class">// CS GRAD &amp; GAME.DEV</div>
+
+      <div class="char-stats">
+        <div class="stat-row"><span class="stat-lbl">CODE</span><div class="stat-bar"><div class="stat-fill g" style="width:98%"></div></div><span class="stat-val">98</span></div>
+        <div class="stat-row"><span class="stat-lbl">MATH</span><div class="stat-bar"><div class="stat-fill y" style="width:93%"></div></div><span class="stat-val">93</span></div>
+        <div class="stat-row"><span class="stat-lbl">DESIGN</span><div class="stat-bar"><div class="stat-fill p" style="width:85%"></div></div><span class="stat-val">85</span></div>
+        <div class="stat-row"><span class="stat-lbl">GRPHX</span><div class="stat-bar"><div class="stat-fill c" style="width:88%"></div></div><span class="stat-val">88</span></div>
+        <div class="stat-row"><span class="stat-lbl">AI/ML</span><div class="stat-bar"><div class="stat-fill pu" style="width:79%"></div></div><span class="stat-val">79</span></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══ STAGE 02 — SKILLS ═══ -->
+<section id="skills">
+  <div class="sec-hdr reveal">
+    <div class="sec-badge">STAGE 02</div>
+    <h2 class="sec-title">SKILL TREE</h2>
+    <div class="sec-line"></div>
+  </div>
+
+  <div class="skills-grid">
+
+    <div class="skill-card reveal">
+      <div class="skill-card-hdr"><span class="skill-icon">⚙️</span><span class="skill-cat">GAME ENGINES</span></div>
+      <div class="skill-item"><div class="skill-meta"><span class="skill-n">Unreal Engine 5</span><span class="skill-p">95%</span></div><div class="bar-o"><div class="bar-i c" data-w="95%"></div></div></div>
+      <div class="skill-item"><div class="skill-meta"><span class="skill-n">Unity</span><span class="skill-p">88%</span></div><div class="bar-o"><div class="bar-i c" data-w="88%"></div></div></div>
+      <div class="skill-item"><div class="skill-meta"><span class="skill-n">Godot</span><span class="skill-p">74%</span></div><div class="bar-o"><div class="bar-i c" data-w="74%"></div></div></div>
+      <div class="skill-item"><div class="skill-meta"><span class="skill-n">Custom Engine</span><span class="skill-p">68%</span></div><div class="bar-o"><div class="bar-i c" data-w="68%"></div></div></div>
+    </div>
+
+    <div class="skill-card reveal" style="transition-delay:0.05s">
+      <div class="skill-card-hdr"><span class="skill-icon">💻</span><span class="skill-cat">PROGRAMMING</span></div>
+      <div class="skill-item"><div class="skill-meta"><span class="skill-n">C++</span><span class="skill-p">98%</span></div><div class="bar-o"><div class="bar-i p" data-w="98%"></div></div></div>
+      <div class="skill-item"><div class="skill-meta"><span class="skill-n">C#</span><span class="skill-p">93%</span></div><div class="bar-o"><div class="bar-i p" data-w="93%"></div></div></div>
+      <div class="skill-item"><div class="skill-meta"><span class="skill-n">Python</span><span class="skill-p">87%</span></div><div class="bar-o"><div class="bar-i p" data-w="87%"></div></div></div>
+      <div class="skill-item"><div class="skill-meta"><span class="skill-n">GLSL / HLSL</span><span class="skill-p">80%</span></div><div class="bar-o"><div class="bar-i p" data-w="80%"></div></div></div>
+    </div>
+
+    <div class="skill-card reveal" style="transition-delay:0.1s">
+      <div class="skill-card-hdr"><span class="skill-icon">🧠</span><span class="skill-cat">CS FUNDAMENTALS</span></div>
+      <div class="skill-item"><div class="skill-meta"><span class="skill-n">Data Structures</span><span class="skill-p">99%</span></div><div class="bar-o"><div class="bar-i y" data-w="99%"></div></div></div>
+      <div class="skill-item"><div class="skill-meta"><span class="skill-n">Algorithms</span><span class="skill-p">96%</span></div><div class="bar-o"><div class="bar-i y" data-w="96%"></div></div></div>
+      <div class="skill-item"><div class="skill-meta"><span class="skill-n">Computer Graphics</span><span class="skill-p">90%</span></div><div class="bar-o"><div class="bar-i y" data-w="90%"></div></div></div>
+      <div class="skill-item"><div class="skill-meta"><span class="skill-n">OS / Systems</span><span class="skill-p">83%</span></div><div class="bar-o"><div class="bar-i y" data-w="83%"></div></div></div>
+    </div>
+
+    <div class="skill-card reveal" style="transition-delay:0.15s">
+      <div class="skill-card-hdr"><span class="skill-icon">🎮</span><span class="skill-cat">GAME SYSTEMS</span></div>
+      <div class="skill-item"><div class="skill-meta"><span class="skill-n">Physics Engines</span><span class="skill-p">91%</span></div><div class="bar-o"><div class="bar-i pu" data-w="91%"></div></div></div>
+      <div class="skill-item"><div class="skill-meta"><span class="skill-n">AI / Pathfinding</span><span class="skill-p">88%</span></div><div class="bar-o"><div class="bar-i pu" data-w="88%"></div></div></div>
+      <div class="skill-item"><div class="skill-meta"><span class="skill-n">Multiplayer / Net</span><span class="skill-p">82%</span></div><div class="bar-o"><div class="bar-i pu" data-w="82%"></div></div></div>
+      <div class="skill-item"><div class="skill-meta"><span class="skill-n">Shader Programming</span><span class="skill-p">77%</span></div><div class="bar-o"><div class="bar-i pu" data-w="77%"></div></div></div>
+    </div>
+
+    <div class="skill-card reveal" style="transition-delay:0.2s">
+      <div class="skill-card-hdr"><span class="skill-icon">🔢</span><span class="skill-cat">MATH &amp; THEORY</span></div>
+      <div class="skill-item"><div class="skill-meta"><span class="skill-n">Linear Algebra</span><span class="skill-p">95%</span></div><div class="bar-o"><div class="bar-i o" data-w="95%"></div></div></div>
+      <div class="skill-item"><div class="skill-meta"><span class="skill-n">Calculus</span><span class="skill-p">90%</span></div><div class="bar-o"><div class="bar-i o" data-w="90%"></div></div></div>
+      <div class="skill-item"><div class="skill-meta"><span class="skill-n">Discrete Math</span><span class="skill-p">88%</span></div><div class="bar-o"><div class="bar-i o" data-w="88%"></div></div></div>
+      <div class="skill-item"><div class="skill-meta"><span class="skill-n">Computational Theory</span><span class="skill-p">79%</span></div><div class="bar-o"><div class="bar-i o" data-w="79%"></div></div></div>
+    </div>
+
+    <div class="skill-card reveal" style="transition-delay:0.25s">
+      <div class="skill-card-hdr"><span class="skill-icon">🛠️</span><span class="skill-cat">TOOLS &amp; PIPELINE</span></div>
+      <div class="skill-item"><div class="skill-meta"><span class="skill-n">Git / Version Control</span><span class="skill-p">97%</span></div><div class="bar-o"><div class="bar-i" data-w="97%"></div></div></div>
+      <div class="skill-item"><div class="skill-meta"><span class="skill-n">Vulkan / OpenGL</span><span class="skill-p">84%</span></div><div class="bar-o"><div class="bar-i" data-w="84%"></div></div></div>
+      <div class="skill-item"><div class="skill-meta"><span class="skill-n">CI/CD &amp; DevOps</span><span class="skill-p">76%</span></div><div class="bar-o"><div class="bar-i" data-w="76%"></div></div></div>
+      <div class="skill-item"><div class="skill-meta"><span class="skill-n">Blender / 3DS Max</span><span class="skill-p">65%</span></div><div class="bar-o"><div class="bar-i" data-w="65%"></div></div></div>
+    </div>
+
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══ STAGE 03 — PROJECTS ═══ -->
+<section id="projects">
+  <div class="sec-hdr reveal">
+    <div class="sec-badge">STAGE 03</div>
+    <h2 class="sec-title">GAME LIBRARY</h2>
+    <div class="sec-line"></div>
+  </div>
+
+  <div class="projects-grid">
+
+    <div class="proj-card reveal">
+      <div class="proj-screen" style="background:radial-gradient(ellipse at 55% 45%,#150050,#000518);">
+        🌌
+        <div class="proj-screen-fx"></div>
+        <div class="proj-screen-hud">
+          <span class="proj-hud-label">PRJ-001 // FEATURED</span>
+          <span class="proj-hud-pts">★★★★★</span>
+        </div>
+      </div>
+      <div class="proj-body">
+        <div class="proj-id">◆ PRJ-001 // FEATURED — STEAM</div>
+        <div class="proj-name">NOVA PROTOCOL</div>
+        <p class="proj-desc">64-player space shooter with procedurally generated galaxies. Custom netcode achieving &lt;20ms latency. 500K+ Steam downloads.</p>
+        <div class="proj-tags">
+          <span class="ptag ptag-e">UNREAL 5</span>
+          <span class="ptag ptag-l">C++</span>
+          <span class="ptag ptag-g">MULTIPLAYER</span>
+          <span class="ptag ptag-g">PROC GEN</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="proj-card reveal" style="transition-delay:0.08s">
+      <div class="proj-screen" style="background:radial-gradient(ellipse at 45% 55%,#003a10,#000f05);">
+        🌿
+        <div class="proj-screen-fx"></div>
+        <div class="proj-screen-hud">
+          <span class="proj-hud-label">PRJ-002</span>
+          <span class="proj-hud-pts">★★★★☆</span>
+        </div>
+      </div>
+      <div class="proj-body">
+        <div class="proj-id">◆ PRJ-002 — ITCH.IO</div>
+        <div class="proj-name">ECHOES OF EDEN</div>
+        <p class="proj-desc">Open-world survival RPG with full ecosystem simulation. Every creature and weather system drives a living, breathing food chain.</p>
+        <div class="proj-tags">
+          <span class="ptag ptag-e">UNITY</span>
+          <span class="ptag ptag-l">C#</span>
+          <span class="ptag ptag-g">OPEN WORLD</span>
+          <span class="ptag ptag-g">AI SIM</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="proj-card reveal" style="transition-delay:0.16s">
+      <div class="proj-screen" style="background:radial-gradient(ellipse at 50% 50%,#3a0000,#100000);">
+        ⚔️
+        <div class="proj-screen-fx"></div>
+        <div class="proj-screen-hud">
+          <span class="proj-hud-label">PRJ-003</span>
+          <span class="proj-hud-pts">★★★★★</span>
+        </div>
+      </div>
+      <div class="proj-body">
+        <div class="proj-id">◆ PRJ-003 — GDC WINNER 2023</div>
+        <div class="proj-name">IRON CITADEL</div>
+        <p class="proj-desc">Tactical turn-based strategy with custom A* pathfinding on 3D multi-floor fortress maps. Won Best Indie Strategy at GDC Showcase.</p>
+        <div class="proj-tags">
+          <span class="ptag ptag-e">GODOT</span>
+          <span class="ptag ptag-l">GDSCRIPT</span>
+          <span class="ptag ptag-g">STRATEGY</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="proj-card reveal" style="transition-delay:0.24s">
+      <div class="proj-screen" style="background:radial-gradient(ellipse at 35% 65%,#1a003a,#050012);">
+        🔮
+        <div class="proj-screen-fx"></div>
+        <div class="proj-screen-hud">
+          <span class="proj-hud-label">PRJ-004 // OSS</span>
+          <span class="proj-hud-pts">⭐ 2.3K</span>
+        </div>
+      </div>
+      <div class="proj-body">
+        <div class="proj-id">◆ PRJ-004 — GITHUB OPEN SOURCE</div>
+        <div class="proj-name">VOXEL ENGINE V2</div>
+        <p class="proj-desc">From-scratch voxel renderer in C++ using Vulkan. Infinite world gen, dynamic LOD, real-time GI. 2.3K GitHub stars.</p>
+        <div class="proj-tags">
+          <span class="ptag ptag-e">CUSTOM</span>
+          <span class="ptag ptag-l">C++ / VULKAN</span>
+          <span class="ptag ptag-g">OPEN SOURCE</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══ STAGE 04 — EXPERIENCE ═══ -->
+<section id="experience">
+  <div class="sec-hdr reveal">
+    <div class="sec-badge">STAGE 04</div>
+    <h2 class="sec-title">GAME HISTORY</h2>
+    <div class="sec-line"></div>
+  </div>
+
+  <div class="exp-table reveal">
+    <div class="exp-hdr">
+      <div class="exp-th">ORGANIZATION</div>
+      <div class="exp-th">DURATION</div>
+      <div class="exp-th">RESPONSIBILITIES</div>
+      <div class="exp-th">TYPE</div>
+    </div>
+
+    <div class="exp-row">
+      <div class="exp-cell"><span class="exp-co">RIOT GAMES</span><span class="exp-role">Senior Game Engineer</span></div>
+      <div class="exp-cell"><span class="exp-date">2023 — NOW</span></div>
+      <div class="exp-cell"><span class="exp-desc">Core gameplay systems for League of Legends. Refactored champion ability framework, reducing memory overhead by 34%.</span></div>
+      <div class="exp-cell"><span class="badge badge-ft">FULL-TIME</span></div>
+    </div>
+
+    <div class="exp-row">
+      <div class="exp-cell"><span class="exp-co">INDIE NEXUS STUDIO</span><span class="exp-role">Lead Developer</span></div>
+      <div class="exp-cell"><span class="exp-date">2021 — 2023</span></div>
+      <div class="exp-cell"><span class="exp-desc">Led team of 8 on Nova Protocol. Architected multiplayer backend and custom physics interpolation system.</span></div>
+      <div class="exp-cell"><span class="badge badge-ft">FULL-TIME</span></div>
+    </div>
+
+    <div class="exp-row">
+      <div class="exp-cell"><span class="exp-co">EPIC GAMES</span><span class="exp-role">Engine Intern — UE5</span></div>
+      <div class="exp-cell"><span class="exp-date">2020</span></div>
+      <div class="exp-cell"><span class="exp-desc">Contributed to Lumen GI debugging tools. Authored internal Nanite virtualized geometry documentation.</span></div>
+      <div class="exp-cell"><span class="badge badge-ct">INTERNSHIP</span></div>
+    </div>
+
+    <div class="exp-row">
+      <div class="exp-cell"><span class="exp-co">FREELANCE</span><span class="exp-role">Game Dev Consultant</span></div>
+      <div class="exp-cell"><span class="exp-date">2018 — 2021</span></div>
+      <div class="exp-cell"><span class="exp-desc">Performance optimization and multiplayer for 6 indie studios. Tools shipped in 3 Steam Early Access titles.</span></div>
+      <div class="exp-cell"><span class="badge badge-ct">CONTRACT</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══ STAGE 05 — ACHIEVEMENTS ═══ -->
+<section id="achievements">
+  <div class="sec-hdr reveal">
+    <div class="sec-badge">STAGE 05</div>
+    <h2 class="sec-title">ACHIEVEMENTS</h2>
+    <div class="sec-line"></div>
+  </div>
+
+  <div class="ach-grid">
+    <div class="ach-card on reveal"><span class="ach-stamp">UNLOCKED</span><span class="ach-icon">🏆</span><div class="ach-title">GDC SHOWCASE WINNER</div><div class="ach-desc">Best Indie Strategy 2023 — Iron Citadel</div></div>
+    <div class="ach-card on reveal" style="transition-delay:0.07s"><span class="ach-stamp">UNLOCKED</span><span class="ach-icon">⭐</span><div class="ach-title">2M+ PLAYERS</div><div class="ach-desc">Combined playerbase across all shipped titles</div></div>
+    <div class="ach-card on reveal" style="transition-delay:0.14s"><span class="ach-stamp">UNLOCKED</span><span class="ach-icon">🎓</span><div class="ach-title">MIT CS GRAD</div><div class="ach-desc">B.Sc Computer Science, Graduated with Honors</div></div>
+    <div class="ach-card on reveal" style="transition-delay:0.21s"><span class="ach-stamp">UNLOCKED</span><span class="ach-icon">🔓</span><div class="ach-title">OPEN SOURCE HERO</div><div class="ach-desc">2.3K GitHub stars on Voxel Engine V2</div></div>
+    <div class="ach-card on reveal" style="transition-delay:0.28s"><span class="ach-stamp">UNLOCKED</span><span class="ach-icon">⚡</span><div class="ach-title">SPEED CODER</div><div class="ach-desc">4× Game Jam wins — 48hr build sprints</div></div>
+    <div class="ach-card on reveal" style="transition-delay:0.35s"><span class="ach-stamp">UNLOCKED</span><span class="ach-icon">🌐</span><div class="ach-title">NET WIZARD</div><div class="ach-desc">64-player custom netcode under 20ms latency</div></div>
+    <div class="ach-card off reveal" style="transition-delay:0.42s"><span class="ach-icon">❓</span><div class="ach-title">???</div><div class="ach-desc">Keep playing to unlock...</div></div>
+    <div class="ach-card off reveal" style="transition-delay:0.49s"><span class="ach-icon">❓</span><div class="ach-title">???</div><div class="ach-desc">Keep playing to unlock...</div></div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══ STAGE 06 — CONTACT ═══ -->
+<section id="contact">
+  <div class="sec-hdr reveal">
+    <div class="sec-badge">STAGE 06</div>
+    <h2 class="sec-title">CONTINUE? INSERT COIN</h2>
+    <div class="sec-line"></div>
+  </div>
+
+  <div class="contact-grid">
+
+    <div class="contact-panel reveal" data-lbl="PLAYER INFO">
+      <div class="ct-title">LET'S BUILD<br>SOMETHING EPIC</div>
+      <p class="ct-sub">Open to full-time roles, contract projects, and game jam collabs. If you're building something ambitious, I want to hear about it.</p>
+      <div class="ct-links">
+        <a href="mailto:alex.voss@dev.io" class="ct-link">alex.voss@dev.io</a>
+        <a href="#" class="ct-link">github.com/alexvoss</a>
+        <a href="#" class="ct-link">linkedin.com/in/alexvoss</a>
+        <a href="#" class="ct-link">@alexvoss_dev — Twitter/X</a>
+      </div>
+    </div>
+
+    <div class="contact-panel reveal" data-lbl="SEND MESSAGE" style="transition-delay:0.1s">
+      <div class="f-field"><label class="f-lbl">PLAYER_NAME</label><input type="text" class="f-inp" placeholder="Your name_"></div>
+      <div class="f-field"><label class="f-lbl">CONTACT_EMAIL</label><input type="email" class="f-inp" placeholder="your@email.com_"></div>
+      <div class="f-field"><label class="f-lbl">QUEST_TYPE</label><input type="text" class="f-inp" placeholder="Indie / Studio / Game Jam_"></div>
+      <div class="f-field"><label class="f-lbl">MESSAGE</label><textarea class="f-inp" placeholder="Tell me about the quest..."></textarea></div>
+      <button class="px-btn btn-p" style="width:100%;justify-content:center">▶ TRANSMIT MESSAGE</button>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+  <div class="foot-copy">© 2026 ALEX VOSS // CS.EXE — ALL RIGHTS RESERVED</div>
+  <div class="foot-score">HI-SCORE: 999999 ★★★</div>
+</footer>
+
+<script>
+/* ─── THEME TOGGLE ─── */
+const html   = document.documentElement;
+const btn    = document.getElementById('themeToggle');
+const icon   = document.getElementById('toggleIcon');
+const label  = document.getElementById('toggleLabel');
+
+function setTheme(theme) {
+  html.setAttribute('data-theme', theme);
+  localStorage.setItem('theme', theme);
+  if (theme === 'dark') {
+    icon.textContent  = '🌙';
+    label.textContent = 'DARK';
+  } else {
+    icon.textContent  = '☀️';
+    label.textContent = 'LIGHT';
+  }
+}
+
+// Load saved theme
+const saved = localStorage.getItem('theme') || 'dark';
+setTheme(saved);
+
+btn.addEventListener('click', () => {
+  const current = html.getAttribute('data-theme');
+  setTheme(current === 'dark' ? 'light' : 'dark');
+});
+
+/* ─── SCROLL REVEAL ─── */
+const revealObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) { e.target.classList.add('visible'); revealObs.unobserve(e.target); }
+  });
+}, { threshold: 0.12 });
+
+document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+
+/* ─── SKILL BAR ANIMATION ─── */
+const barObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.querySelectorAll('.bar-i[data-w]').forEach(bar => {
+        const w = bar.getAttribute('data-w');
+        bar.style.width = '0';
+        requestAnimationFrame(() => {
+          setTimeout(() => { bar.style.width = w; }, 100);
+        });
+      });
+      barObs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.15 });
+
+document.querySelectorAll('.skill-card').forEach(el => barObs.observe(el));
+
+/* ─── SMOOTH SCROLL ─── */
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const t = document.querySelector(a.getAttribute('href'));
+    if (t) { e.preventDefault(); t.scrollIntoView({ behavior:'smooth' }); }
+  });
+});
+
+/* ─── KONAMI CODE ─── */
+let kseq = [];
+const kcode = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+document.addEventListener('keydown', e => {
+  kseq.push(e.key); kseq = kseq.slice(-10);
+  if (JSON.stringify(kseq) === JSON.stringify(kcode)) {
+    document.body.style.filter = 'hue-rotate(180deg) saturate(2)';
+    setTimeout(() => document.body.style.filter = '', 3000);
+  }
+});
+
+/* ─── NAV ACTIVE STATE ─── */
+const sections = document.querySelectorAll('section[id]');
+const navLinks  = document.querySelectorAll('.nav-center a');
+
+const activeObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      navLinks.forEach(a => a.style.color = '');
+      const active = document.querySelector(`.nav-center a[href="#${e.target.id}"]`);
+      if (active) active.style.color = 'var(--cyan)';
+    }
+  });
+}, { rootMargin:'-40% 0px -55% 0px' });
+
+sections.forEach(s => activeObs.observe(s));
+</script>
+</body>
+</html>
